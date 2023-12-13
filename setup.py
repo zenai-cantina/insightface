@@ -80,8 +80,8 @@ setup(
     # Metadata
     name='insightface',
     version=VERSION,
-    author='Dat Viet Thanh Nguyen',
-    author_email='theodore.dvtn@gmail.com',
+    author='zenai-cantina',
+    author_email='duong.na@zenai.vn',
     url='https://github.com/zenai-cantina/insightface',
     description='InsightFace Python Library',
     long_description=long_description,
