@@ -9,27 +9,54 @@ from onnx import numpy_helper
 from ..utils import face_align
 
 
-def hwc2bchw(images: torch.Tensor) -> torch.Tensor:
+def hwc_to_bchw(images: torch.Tensor) -> torch.Tensor:
+    """
+    Convert a tensor from HWC format to BCHW format.
+
+    Args:
+    images (torch.Tensor): The input tensor in HWC format.
+
+    Returns:
+    torch.Tensor: The tensor converted to BCHW format.
+    """
     return images.unsqueeze(0).permute(0, 3, 1, 2)
 
 
-def to_tensor(images):
-    return hwc2bchw(torch.from_numpy(images))
+def to_tensor(images: np.ndarray) -> torch.Tensor:
+    """
+    Convert a numpy array to a PyTorch tensor and change its format from HWC to BCHW.
 
-def create_mask(vis_img):
-    threshold = 0.  # You can adjust this threshold as needed
+    Args:
+    images (np.ndarray): The input numpy array.
+
+    Returns:
+    torch.Tensor: The corresponding PyTorch tensor in BCHW format.
+    """
+    return hwc_to_bchw(torch.from_numpy(images))
+
+
+def create_mask(vis_img: np.ndarray) -> np.ndarray:
+    """
+    Create a binary mask from a given image based on a threshold.
+
+    Args:
+    vis_img (np.ndarray): The input image for mask creation.
+
+    Returns:
+    np.ndarray: The binary mask of the image.
+    """
+    threshold = 0.0  # Adjust this threshold as needed
     binary_mask = vis_img > threshold
-    
-    # Convert the binary mask to a white object on a black background
-    object_color = 255  # White
-    background_color = 0  # Black
-    
+
+    # White object on a black background
+    object_color, background_color = 255, 0
+
     white_mask = binary_mask * object_color
     black_mask = ~binary_mask * background_color
-    
-    # Combine the white object and black background masks
+
     result_mask = white_mask + black_mask
     return result_mask
+
 
 class INSwapper():
     def __init__(self, model_file=None, session=None):
@@ -67,7 +94,17 @@ class INSwapper():
         pred = self.session.run(self.output_names, {self.input_names[0]: img, self.input_names[1]: latent})[0]
         return pred
 
-    def get_face_parsing_mask(self, face_image, yv5_faces):
+    def get_face_parsing_mask(self, face_image: torch.Tensor, yv5_faces: dict) -> np.ndarray:
+        """
+        Generate a face parsing mask for the given face image.
+
+        Args:
+        face_image (torch.Tensor): The face image as a PyTorch tensor.
+        yv5_faces (dict): A dictionary containing the face data.
+
+        Returns:
+        np.ndarray: The face parsing mask as a numpy array.
+        """
         with torch.inference_mode():
             faces = self.face_parser(face_image, yv5_faces)
 
@@ -81,7 +118,6 @@ class INSwapper():
         result_mask = torch.Tensor(result_mask)
 
         mask_array = result_mask.squeeze().cpu().numpy()
-        # image_seg_array = np.uint8(np.stack([mask_array] * 3, axis=-1))
         image_seg_array = np.uint8(mask_array[..., None])
 
         return image_seg_array        
@@ -143,8 +179,10 @@ class INSwapper():
             #img_mask = fake_diff
             img_mask = np.reshape(img_mask, [img_mask.shape[0],img_mask.shape[1],1])
 
+            # Convert the image to tensor and to the device
             face_image = to_tensor(cv2.cvtColor(bgr_fake, cv2.COLOR_BGR2RGB)).to(device=self.device)
-            # Convert the data to PyTorch tensors
+
+            # Convert the data to PyTorch tensors and move to the device
             boxes_tensor = torch.tensor(np.array([target_face.bbox]), dtype=torch.float32).to(device=self.device)
             key_points_tensor = torch.tensor(np.array([target_face.kps]), dtype=torch.float32).to(device=self.device)
 
@@ -156,11 +194,10 @@ class INSwapper():
                 'image_ids': torch.tensor([0], dtype=torch.int64).to(device=self.device)
             }
 
+            # Obtain the mask and apply it for merging images
             rgb_fake_mask = self.get_face_parsing_mask(face_image, yv5_faces) / 255
-            # face_image = to_tensor(cv2.cvtColor(target_img, cv2.COLOR_BGR2RGB)).to(device=self.device)
-            # target_mask = self.get_face_parsing_mask(face_image, yv5_faces) / 255
             img_mask = rgb_fake_mask * img_mask
-            fake_merged = img_mask * bgr_fake + (1-img_mask) * target_img.astype(np.float32)
+
+            fake_merged = img_mask * bgr_fake + (1 - img_mask) * target_img.astype(np.float32)
             fake_merged = fake_merged.astype(np.uint8)
             return fake_merged
-
