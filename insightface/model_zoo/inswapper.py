@@ -3,7 +3,6 @@ import numpy as np
 import onnxruntime
 import cv2
 import onnx
-import facer
 import torch
 from onnx import numpy_helper
 from ..utils import face_align
@@ -87,40 +86,13 @@ class INSwapper():
         print('inswapper-shape:', self.input_shape)
         self.input_size = tuple(input_shape[2:4][::-1])
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.face_parser = facer.face_parser('farl/lapa/448', device=self.device)
 
     def forward(self, img, latent):
         img = (img - self.input_mean) / self.input_std
         pred = self.session.run(self.output_names, {self.input_names[0]: img, self.input_names[1]: latent})[0]
         return pred
 
-    def get_face_parsing_mask(self, face_image: torch.Tensor, yv5_faces: dict) -> np.ndarray:
-        """
-        Generate a face parsing mask for the given face image.
-
-        Args:
-        face_image (torch.Tensor): The face image as a PyTorch tensor.
-        yv5_faces (dict): A dictionary containing the face data.
-
-        Returns:
-        np.ndarray: The face parsing mask as a numpy array.
-        """
-        with torch.inference_mode():
-            faces = self.face_parser(face_image, yv5_faces)
-
-        seg_logits = faces['seg']['logits']
-        seg_probs = seg_logits.softmax(dim=1)  # nfaces x nclasses x h x w
-        n_classes = seg_probs.size(1)
-        vis_seg_probs = seg_probs.argmax(dim=1).float() / n_classes * 255
-        vis_img = vis_seg_probs.sum(0, keepdim=True)
-
-        result_mask = create_mask(vis_img)
-        result_mask = torch.Tensor(result_mask)
-
-        mask_array = result_mask.squeeze().cpu().numpy()
-        image_seg_array = np.uint8(mask_array[..., None])
-
-        return image_seg_array        
+    
 
     def get(self, img, target_face, source_face, paste_back=True):
         aimg, M = face_align.norm_crop2(img, target_face.kps, self.input_size[0])
@@ -194,10 +166,4 @@ class INSwapper():
                 'image_ids': torch.tensor([0], dtype=torch.int64).to(device=self.device)
             }
 
-            # Obtain the mask and apply it for merging images
-            rgb_fake_mask = self.get_face_parsing_mask(face_image, yv5_faces) / 255
-            img_mask = rgb_fake_mask * img_mask
-
-            fake_merged = img_mask * bgr_fake + (1 - img_mask) * target_img.astype(np.float32)
-            fake_merged = fake_merged.astype(np.uint8)
-            return fake_merged
+            return img_mask, bgr_fake, face_image, yv5_faces
