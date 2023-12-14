@@ -55,7 +55,6 @@ requirements = [
     'cython',
     'albumentations',
     'prettytable',
-    'pyfacer',
 ]
 
 extensions = [
