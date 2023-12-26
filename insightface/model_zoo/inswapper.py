@@ -106,19 +106,11 @@ class INSwapper():
         img_fake = pred.transpose((0,2,3,1))[0]
         bgr_fake = np.clip(255 * img_fake, 0, 255).astype(np.uint8)[:,:,::-1]
         if not paste_back:
-            return bgr_fake, M
+            return bgr_fake, M, None
         else:
             target_img = img
             IM = cv2.invertAffineTransform(M)
-            img_white = np.full((aimg.shape[0],aimg.shape[1]), 255, dtype=np.float32)
             bgr_fake = cv2.warpAffine(bgr_fake, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
-            img_white = cv2.warpAffine(img_white, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
-            img_white[img_white>20] = 255
-            img_mask = img_white
-            mask_h_inds, mask_w_inds = np.where(img_mask==255)
-            mask_h = np.max(mask_h_inds) - np.min(mask_h_inds)
-            mask_w = np.max(mask_w_inds) - np.min(mask_w_inds)
-            mask_size = int(np.sqrt(mask_h*mask_w))
 
             # Convert the image to tensor and to the device
             face_image = to_tensor(cv2.cvtColor(bgr_fake, cv2.COLOR_BGR2RGB)).to(device=self.device)
@@ -135,4 +127,4 @@ class INSwapper():
                 'image_ids': torch.tensor([0], dtype=torch.int64).to(device=self.device)
             }
 
-            return mask_size, bgr_fake, face_image, yv5_faces
+            return bgr_fake, face_image, yv5_faces
