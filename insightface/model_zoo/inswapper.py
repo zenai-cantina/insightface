@@ -94,7 +94,7 @@ class INSwapper():
 
     
 
-    def get(self, img, target_face, source_face, paste_back=True):
+    def get(self, img, target_face, source_face, paste_back=True, dilation=False, static_blur=False):
         aimg, M = face_align.norm_crop2(img, target_face.kps, self.input_size[0])
         blob = cv2.dnn.blobFromImage(aimg, 1.0 / self.input_std, self.input_size,
                                       (self.input_mean, self.input_mean, self.input_mean), swapRB=True)
@@ -113,32 +113,41 @@ class INSwapper():
             aimg_height, aimg_width = aimg.shape[:2]
 
             # V1
-            white_raw = np.full((aimg_width, aimg_height), 255, dtype=np.float32)
-            white_raw = cv2.warpAffine(white_raw, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
-            white_raw[white_raw > 20] = 255
-            mask_h_inds, mask_w_inds = np.where(white_raw == 255)
-            mask_h = np.max(mask_h_inds) - np.min(mask_h_inds)
-            mask_w = np.max(mask_w_inds) - np.min(mask_w_inds)
-            mask_size = int(np.sqrt(mask_h * mask_w))
+            white_raw = None
+            if static_blur:
+                white_raw = np.full((aimg_width, aimg_height), 255, dtype=np.float32)
+                white_raw = cv2.warpAffine(white_raw, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
+                white_raw[white_raw > 20] = 255
+                mask_h_inds, mask_w_inds = np.where(white_raw == 255)
+                mask_h = np.max(mask_h_inds) - np.min(mask_h_inds)
+                mask_w = np.max(mask_w_inds) - np.min(mask_w_inds)
+                mask_size = int(np.sqrt(mask_h * mask_w))
 
-            k = max(mask_size // 10, 10)
-            kernel = np.ones((k, k), np.uint8)
-            white_raw = cv2.erode(white_raw, kernel, iterations = 1)
+                k = max(mask_size // 10, 10)
+                kernel = np.ones((k, k), np.uint8)
+                white_raw = cv2.erode(white_raw, kernel, iterations = 1)
 
-            k = max(mask_size // 20, 5)
-            kernel_size = (k, k)
-            blur_size = tuple(2 * i + 1 for i in kernel_size)
-            white_raw = cv2.GaussianBlur(white_raw, blur_size, 0)
-            white_raw = white_raw[:, :, np.newaxis]
+                k = max(mask_size // 20, 5)
+                kernel_size = (k, k)
+                blur_size = tuple(2 * i + 1 for i in kernel_size)
+                white_raw = cv2.GaussianBlur(white_raw, blur_size, 0)
+                white_raw = white_raw[:, :, np.newaxis]
+
+            #########################################################
+
+            # V2
+            bgr_fake = cv2.warpAffine(bgr_fake, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
 
             #########################################################
 
             # V3
-            white_temp = np.full((aimg_width, aimg_height), 0, dtype=np.float32)
-            white_temp[int(0.05 * aimg_height) : int(0.95 * aimg_height), int(0.05 * aimg_width) : int(0.95 * aimg_width)] = 1.0
+            white_temp = None
+            if dilation:
+                white_temp = np.full((aimg_width, aimg_height), 0, dtype=np.float32)
+                white_temp[int(0.05 * aimg_height) : int(0.95 * aimg_height), int(0.05 * aimg_width) : int(0.95 * aimg_width)] = 1.0
+                white_temp = cv2.warpAffine(white_temp, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
 
-            bgr_fake = cv2.warpAffine(bgr_fake, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
-            white_temp = cv2.warpAffine(white_temp, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
+            #########################################################
 
             # Convert the image to tensor and to the device
             face_image = to_tensor(cv2.cvtColor(bgr_fake, cv2.COLOR_BGR2RGB)).to(device=self.device)
