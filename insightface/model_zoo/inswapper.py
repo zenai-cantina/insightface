@@ -110,7 +110,12 @@ class INSwapper():
         else:
             target_img = img
             IM = cv2.invertAffineTransform(M)
+            aimg_height, aimg_width = aimg.shape[:2]
+            white_temp = np.full((aimg_width, aimg_height), 0, dtype=np.float32)
+            white_temp[int(0.05 * aimg_height) : int(0.95 * aimg_height), int(0.05 * aimg_width) : int(0.95 * aimg_width)] = 1.0
+
             bgr_fake = cv2.warpAffine(bgr_fake, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
+            white_temp = cv2.warpAffine(white_temp, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
 
             # Convert the image to tensor and to the device
             face_image = to_tensor(cv2.cvtColor(bgr_fake, cv2.COLOR_BGR2RGB)).to(device=self.device)
@@ -127,4 +132,4 @@ class INSwapper():
                 'image_ids': torch.tensor([0], dtype=torch.int64).to(device=self.device)
             }
 
-            return bgr_fake, face_image, yv5_faces
+            return bgr_fake, white_temp, face_image, yv5_faces
