@@ -106,7 +106,7 @@ class INSwapper():
         img_fake = pred.transpose((0,2,3,1))[0]
         bgr_fake = np.clip(255 * img_fake, 0, 255).astype(np.uint8)[:,:,::-1]
         if not paste_back:
-            return bgr_fake, M
+            return bgr_fake, aimg, M
         else:
             target_img = img
             fake_diff = bgr_fake.astype(np.float32) - aimg.astype(np.float32)
