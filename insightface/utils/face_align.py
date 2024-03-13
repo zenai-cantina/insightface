@@ -43,9 +43,9 @@ def norm_crop2(img, landmark, image_size=112, mode='arcface'):
     return warped, M
 
 def norm_crop3(img, landmark, image_size=112, mode='arcface'):
-	normed_template = arcface_v2_dst * image_size
+	normed_template = arcface_v2_dst * (image_size, image_size)
 	affine_matrix = cv2.estimateAffinePartial2D(landmark, normed_template, method = cv2.RANSAC, ransacReprojThreshold = 100)[0]
-	crop_vision_frame = cv2.warpAffine(img, affine_matrix, image_size, borderMode = cv2.BORDER_REPLICATE, flags = cv2.INTER_AREA)
+	crop_vision_frame = cv2.warpAffine(img, affine_matrix, (image_size, image_size), borderMode = cv2.BORDER_REPLICATE, flags = cv2.INTER_AREA)
 	return crop_vision_frame, affine_matrix
 
 def square_crop(im, S):
