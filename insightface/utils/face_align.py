@@ -8,6 +8,14 @@ arcface_dst = np.array(
      [41.5493, 92.3655], [70.7299, 92.2041]],
     dtype=np.float32)
 
+arcface_v2_dst = np.array([
+		[ 0.36167656, 0.40387734 ],
+		[ 0.63696719, 0.40235469 ],
+		[ 0.50019687, 0.56044219 ],
+		[ 0.38710391, 0.72160547 ],
+		[ 0.61507734, 0.72034453 ]
+])
+
 def estimate_norm(lmk, image_size=112,mode='arcface'):
     assert lmk.shape == (5, 2)
     assert image_size%112==0 or image_size%128==0
@@ -33,6 +41,12 @@ def norm_crop2(img, landmark, image_size=112, mode='arcface'):
     M = estimate_norm(landmark, image_size, mode)
     warped = cv2.warpAffine(img, M, (image_size, image_size), borderValue=0.0)
     return warped, M
+
+def norm_crop3(img, landmark, image_size=112, mode='arcface'):
+	normed_template = arcface_v2_dst * image_size
+	affine_matrix = cv2.estimateAffinePartial2D(landmark, normed_template, method = cv2.RANSAC, ransacReprojThreshold = 100)[0]
+	crop_vision_frame = cv2.warpAffine(img, affine_matrix, image_size, borderMode = cv2.BORDER_REPLICATE, flags = cv2.INTER_AREA)
+	return crop_vision_frame, affine_matrix
 
 def square_crop(im, S):
     if im.shape[0] > im.shape[1]:

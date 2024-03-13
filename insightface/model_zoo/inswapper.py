@@ -95,7 +95,7 @@ class INSwapper():
     
 
     def get(self, img, target_face, source_face, paste_back=True):
-        aimg, M = face_align.norm_crop2(img, target_face.kps, self.input_size[0])
+        aimg, M = face_align.norm_crop3(img, target_face.kps, self.input_size[0])
         blob = cv2.dnn.blobFromImage(aimg, 1.0 / self.input_std, self.input_size,
                                       (self.input_mean, self.input_mean, self.input_mean), swapRB=True)
         latent = source_face.normed_embedding.reshape((1,-1))
