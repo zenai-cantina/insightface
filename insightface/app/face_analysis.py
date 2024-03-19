@@ -76,6 +76,27 @@ class FaceAnalysis:
             ret.append(face)
         return ret
 
+    def get_with_mask(self, img, img_mask, max_num=0):
+        bboxes, kpss = self.det_model.detect(img,
+                                             max_num=max_num,
+                                             metric='default')
+        if bboxes.shape[0] == 0:
+            return []
+        ret = []
+        for i in range(bboxes.shape[0]):
+            bbox = bboxes[i, 0:4]
+            det_score = bboxes[i, 4]
+            kps = None
+            if kpss is not None:
+                kps = kpss[i]
+            face = Face(bbox=bbox, kps=kps, det_score=det_score)
+            for taskname, model in self.models.items():
+                if taskname=='detection':
+                    continue
+                model.get(img_mask, face)
+            ret.append(face)
+        return ret
+
     def draw_on(self, img, faces):
         import cv2
         dimg = img.copy()
