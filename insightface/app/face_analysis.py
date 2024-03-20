@@ -55,7 +55,7 @@ class FaceAnalysis:
             else:
                 model.prepare(ctx_id)
 
-    def get(self, img, max_num=0):
+    def get(self, img, max_num=0, skip_reg=False):
         bboxes, kpss = self.det_model.detect(img,
                                              max_num=max_num,
                                              metric='default')
@@ -70,30 +70,16 @@ class FaceAnalysis:
                 kps = kpss[i]
             face = Face(bbox=bbox, kps=kps, det_score=det_score)
             for taskname, model in self.models.items():
-                if taskname=='detection':
+                if taskname=='detection' or (taskname == 'recognition' and skip_reg):
                     continue
                 model.get(img, face)
             ret.append(face)
         return ret
 
-    def get_with_mask(self, img, img_mask, max_num=0):
-        bboxes, kpss = self.det_model.detect(img,
-                                             max_num=max_num,
-                                             metric='default')
-        if bboxes.shape[0] == 0:
-            return []
+    def get_recog(self, img_mask, faces: [Face]):
         ret = []
-        for i in range(bboxes.shape[0]):
-            bbox = bboxes[i, 0:4]
-            det_score = bboxes[i, 4]
-            kps = None
-            if kpss is not None:
-                kps = kpss[i]
-            face = Face(bbox=bbox, kps=kps, det_score=det_score)
-            for taskname, model in self.models.items():
-                if taskname=='detection':
-                    continue
-                model.get(img_mask, face)
+        for face in faces:
+            self.models["recognition"].get(img_mask, face)
             ret.append(face)
         return ret
 
