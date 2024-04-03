@@ -40,6 +40,8 @@ class FaceAnalysis:
             else:
                 print('duplicated model task type, ignore:', onnx_file, model.taskname)
                 del model
+        if kwargs["use_local_det"]:
+            self.models['detection'] = None
         assert 'detection' in self.models
         self.det_model = self.models['detection']
 
@@ -51,7 +53,8 @@ class FaceAnalysis:
         self.det_size = det_size
         for taskname, model in self.models.items():
             if taskname=='detection':
-                model.prepare(ctx_id, input_size=det_size, det_thresh=det_thresh)
+                if model is not None:
+                    model.prepare(ctx_id, input_size=det_size, det_thresh=det_thresh)
             else:
                 model.prepare(ctx_id)
 
