@@ -7,6 +7,7 @@
 
 from __future__ import division
 
+import time
 import glob
 import os.path as osp
 
@@ -26,9 +27,28 @@ class FaceAnalysis:
         self.models = {}
         self.model_dir = ensure_available('models', name, root=root)
         onnx_files = glob.glob(osp.join(self.model_dir, '*.onnx'))
-        onnx_files = sorted(onnx_files)
+        _onnx_files = sorted(onnx_files)
+        model_zoo_dict = {
+            "1k3d68.onnx" : "landmark_3d_68",
+            "2d106det.onnx": "landmark_2d_106",
+            "det_10g.onnx": "detection",
+            "genderage.onnx": "genderage",
+            "w600k_r50.onnx": "recognition",
+        }
+
+        if name == "buffalo_l" and allowed_modules is not None:
+            onnx_files = []
+            for onnx_file in _onnx_files:
+                onnx_filename = osp.basename(onnx_file)
+                if model_zoo_dict[onnx_filename] in allowed_modules:
+                    onnx_files.append(onnx_file)
+        else:
+            onnx_files = _onnx_files
+
         for onnx_file in onnx_files:
+            start_time = time.time()
             model = model_zoo.get_model(onnx_file, **kwargs)
+            print(f'model {onnx_file} load times: ', time.time() - start_time)
             if model is None:
                 print('model not recognized:', onnx_file)
             elif allowed_modules is not None and model.taskname not in allowed_modules:
