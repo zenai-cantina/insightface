@@ -9,6 +9,7 @@ from __future__ import division
 
 import time
 import glob
+import os
 import os.path as osp
 
 import numpy as np
@@ -44,6 +45,7 @@ class FaceAnalysis:
                     onnx_files.append(onnx_file)
         else:
             onnx_files = _onnx_files
+        onnx_files = sorted(onnx_files, key=lambda x : os.stat(x).st_size)
 
         for onnx_file in onnx_files:
             start_time = time.time()
