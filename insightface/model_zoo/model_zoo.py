@@ -70,12 +70,13 @@ def find_onnx_file(dir_path):
 def get_default_providers():
     return ['CUDAExecutionProvider', 'CPUExecutionProvider']
 
-def get_default_provider_options(use_default=True):
-    if use_default:
-        return None
+def get_default_provider_options():
+    return None
+
+def get_default_session_options():
     sess_options = onnxruntime.SessionOptions()
     sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_DISABLE_ALL
-    sess_options.optimized_model_filepath = 'optimized_model.ort'
+    # sess_options.optimized_model_filepath = 'optimized_model.ort'
     return sess_options
 
 def get_model(name, **kwargs):
@@ -97,7 +98,8 @@ def get_model(name, **kwargs):
     assert osp.isfile(model_file), 'model_file %s should be a file'%model_file
     router = ModelRouter(model_file)
     providers = kwargs.get('providers', get_default_providers())
-    provider_options = kwargs.get('provider_options', get_default_provider_options(False))
-    model = router.get_model(providers=providers, provider_options=provider_options)
+    provider_options = kwargs.get('provider_options', get_default_provider_options())
+    session_options = kwargs.get('session_options', get_default_session_options())
+    model = router.get_model(providers=providers, provider_options=provider_options, session_options=session_options)
     return model
 
