@@ -7,6 +7,7 @@
 from __future__ import division
 import numpy as np
 import cv2
+import time
 import onnx
 import onnxruntime
 from ..utils import face_align
@@ -24,7 +25,9 @@ class ArcFaceONNX:
         self.taskname = 'recognition'
         find_sub = False
         find_mul = False
+        start_time = time.time()
         model = onnx.load(self.model_file)
+        print (f'onnx model {self.model_file} load time:', time.time()-start_time)
         graph = model.graph
         for nid, node in enumerate(graph.node[:8]):
             #print(nid, node.name)

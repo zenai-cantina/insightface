@@ -50,7 +50,7 @@ class FaceAnalysis:
         for onnx_file in onnx_files:
             start_time = time.time()
             model = model_zoo.get_model(onnx_file, **kwargs)
-            print(f'model {onnx_file} load times: ', time.time() - start_time)
+            print(f'onnxruntime model {onnx_file} load times: ', time.time() - start_time)
             if model is None:
                 print('model not recognized:', onnx_file)
             elif allowed_modules is not None and model.taskname not in allowed_modules:

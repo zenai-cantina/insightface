@@ -3,6 +3,7 @@ import numpy as np
 import onnxruntime
 import cv2
 import onnx
+import time
 import torch
 from onnx import numpy_helper
 from ..utils import face_align
@@ -61,7 +62,9 @@ class INSwapper():
     def __init__(self, model_file=None, session=None):
         self.model_file = model_file
         self.session = session
+        start_time = time.time()
         model = onnx.load(self.model_file)
+        print (f'onnx model {self.model_file} load time:', time.time()-start_time)
         graph = model.graph
         self.emap = numpy_helper.to_array(graph.initializer[-1])
         self.input_mean = 0.0
