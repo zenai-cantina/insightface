@@ -3,6 +3,7 @@ import numpy as np
 import onnxruntime
 import cv2
 import onnx
+import time
 import torch
 from onnx import numpy_helper
 from ..utils import face_align
@@ -61,7 +62,9 @@ class INSwapper():
     def __init__(self, model_file=None, session=None):
         self.model_file = model_file
         self.session = session
+        start_time = time.time()
         model = onnx.load(self.model_file)
+        print (f'onnx model {self.model_file} load time:', time.time()-start_time)
         graph = model.graph
         self.emap = numpy_helper.to_array(graph.initializer[-1])
         self.input_mean = 0.0
@@ -95,7 +98,7 @@ class INSwapper():
     
 
     def get(self, img, target_face, source_face, paste_back=True):
-        aimg, M = face_align.norm_crop2(img, target_face.kps, self.input_size[0])
+        aimg, M = face_align.norm_crop3(img, target_face.kps, self.input_size[0])
         blob = cv2.dnn.blobFromImage(aimg, 1.0 / self.input_std, self.input_size,
                                       (self.input_mean, self.input_mean, self.input_mean), swapRB=True)
         latent = source_face.normed_embedding.reshape((1,-1))

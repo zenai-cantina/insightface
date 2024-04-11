@@ -73,6 +73,22 @@ def get_default_providers():
 def get_default_provider_options():
     return None
 
+def get_default_session_options(onnx_file=None):
+    sess_options = onnxruntime.SessionOptions()
+
+    # Log Severity Levels
+    #   0 (VERBOSE): Provides the most detailed logging information. This level logs everything, including detailed information about the execution. It's useful for debugging but can generate a lot of log data.
+    #   1 (INFO): Logs informational messages that highlight the progress of the application at a coarse-grained level. It's less verbose than VERBOSE and is useful for general insights into the execution flow.
+    #   2 (WARNING): Logs potentially harmful situations that are not necessarily errors but might require attention. This level is useful for identifying issues that don't stop the model from running but could affect performance or correctness.
+    #   3 (ERROR): Logs error events that might still allow the application to continue running. It's useful for capturing errors that occur during the execution of the model.
+    #   4 (FATAL): Logs very severe error events that will presumably lead the application to abort. This is the highest level of severity and is reserved for errors that compromise the application's ability to continue.
+
+    sess_options.log_severity_level = 1
+    # sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_DISABLE_ALL
+    if onnx_file is not None:
+        sess_options.optimized_model_filepath = onnx_file[:-4] + "ort"
+    return sess_options
+
 def get_model(name, **kwargs):
     root = kwargs.get('root', '~/.insightface')
     root = os.path.expanduser(root)
@@ -93,6 +109,7 @@ def get_model(name, **kwargs):
     router = ModelRouter(model_file)
     providers = kwargs.get('providers', get_default_providers())
     provider_options = kwargs.get('provider_options', get_default_provider_options())
-    model = router.get_model(providers=providers, provider_options=provider_options)
+    session_options = kwargs.get('session_options', get_default_session_options(model_file))
+    model = router.get_model(providers=providers, provider_options=provider_options, sess_options=session_options)
     return model
 

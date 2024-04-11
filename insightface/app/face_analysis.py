@@ -7,7 +7,9 @@
 
 from __future__ import division
 
+import time
 import glob
+import os
 import os.path as osp
 
 import numpy as np
@@ -26,9 +28,29 @@ class FaceAnalysis:
         self.models = {}
         self.model_dir = ensure_available('models', name, root=root)
         onnx_files = glob.glob(osp.join(self.model_dir, '*.onnx'))
-        onnx_files = sorted(onnx_files)
+        _onnx_files = sorted(onnx_files)
+        model_zoo_dict = {
+            "1k3d68.onnx" : "landmark_3d_68",
+            "2d106det.onnx": "landmark_2d_106",
+            "det_10g.onnx": "detection",
+            "genderage.onnx": "genderage",
+            "w600k_r50.onnx": "recognition",
+        }
+
+        if name == "buffalo_l" and allowed_modules is not None:
+            onnx_files = []
+            for onnx_file in _onnx_files:
+                onnx_filename = osp.basename(onnx_file)
+                if model_zoo_dict[onnx_filename] in allowed_modules:
+                    onnx_files.append(onnx_file)
+        else:
+            onnx_files = _onnx_files
+        onnx_files = sorted(onnx_files, key=lambda x : os.stat(x).st_size)
+
         for onnx_file in onnx_files:
+            start_time = time.time()
             model = model_zoo.get_model(onnx_file, **kwargs)
+            print(f'onnxruntime model {onnx_file} load times: ', time.time() - start_time)
             if model is None:
                 print('model not recognized:', onnx_file)
             elif allowed_modules is not None and model.taskname not in allowed_modules:
@@ -40,6 +62,10 @@ class FaceAnalysis:
             else:
                 print('duplicated model task type, ignore:', onnx_file, model.taskname)
                 del model
+
+        use_local_det = kwargs.get("use_local_det", None)
+        if use_local_det is not None and use_local_det:
+            self.models['detection'] = None
         assert 'detection' in self.models
         self.det_model = self.models['detection']
 
@@ -51,11 +77,12 @@ class FaceAnalysis:
         self.det_size = det_size
         for taskname, model in self.models.items():
             if taskname=='detection':
-                model.prepare(ctx_id, input_size=det_size, det_thresh=det_thresh)
+                if model is not None:
+                    model.prepare(ctx_id, input_size=det_size, det_thresh=det_thresh)
             else:
                 model.prepare(ctx_id)
 
-    def get(self, img, max_num=0):
+    def get(self, img, max_num=0, skip_reg=False):
         bboxes, kpss = self.det_model.detect(img,
                                              max_num=max_num,
                                              metric='default')
@@ -70,9 +97,34 @@ class FaceAnalysis:
                 kps = kpss[i]
             face = Face(bbox=bbox, kps=kps, det_score=det_score)
             for taskname, model in self.models.items():
-                if taskname=='detection':
+                if taskname=='detection' or (taskname == 'recognition' and skip_reg):
                     continue
                 model.get(img, face)
+            ret.append(face)
+        return ret
+
+    def get_faces(self, img, max_num=0):
+        bboxes, kpss = self.det_model.detect(img,
+                                             max_num=max_num,
+                                             metric='default')
+        if bboxes.shape[0] == 0:
+            return []
+        ret = []
+        for i in range(bboxes.shape[0]):
+            bbox = bboxes[i, 0:4]
+            det_score = bboxes[i, 4]
+            kps = None
+            if kpss is not None:
+                kps = kpss[i]
+            face = Face(bbox=bbox, kps=kps, det_score=det_score)
+
+            ret.append(face)
+        return ret
+
+    def get_recog(self, img_mask, faces: [Face]):
+        ret = []
+        for face in faces:
+            self.models["recognition"].get(img_mask, face)
             ret.append(face)
         return ret
 
