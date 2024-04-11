@@ -109,7 +109,7 @@ def get_model(name, **kwargs):
     router = ModelRouter(model_file)
     providers = kwargs.get('providers', get_default_providers())
     provider_options = kwargs.get('provider_options', get_default_provider_options())
-    session_options = kwargs.get('session_options', get_default_session_options(model_file))
+    session_options = kwargs.get('session_options', get_default_session_options(None))
     model = router.get_model(providers=providers, provider_options=provider_options, sess_options=session_options)
     return model
 
