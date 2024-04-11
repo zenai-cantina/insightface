@@ -83,7 +83,7 @@ def get_default_session_options(onnx_file=None):
     #   3 (ERROR): Logs error events that might still allow the application to continue running. It's useful for capturing errors that occur during the execution of the model.
     #   4 (FATAL): Logs very severe error events that will presumably lead the application to abort. This is the highest level of severity and is reserved for errors that compromise the application's ability to continue.
 
-    sess_options.log_severity_level = 1
+    sess_options.log_severity_level = 2
     # sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_DISABLE_ALL
     if onnx_file is not None:
         sess_options.optimized_model_filepath = onnx_file[:-4] + "ort"
