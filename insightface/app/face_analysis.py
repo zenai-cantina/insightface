@@ -62,7 +62,9 @@ class FaceAnalysis:
             else:
                 print('duplicated model task type, ignore:', onnx_file, model.taskname)
                 del model
-        if kwargs["use_local_det"]:
+
+        use_local_det = kwargs.get("use_local_det", None)
+        if use_local_det is not None and use_local_det:
             self.models['detection'] = None
         assert 'detection' in self.models
         self.det_model = self.models['detection']
