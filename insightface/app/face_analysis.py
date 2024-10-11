@@ -37,7 +37,7 @@ class FaceAnalysis:
             "w600k_r50.onnx": "recognition",
         }
 
-        if name == "buffalo_l" and allowed_modules is not None:
+        if allowed_modules is not None:
             onnx_files = []
             for onnx_file in _onnx_files:
                 onnx_filename = osp.basename(onnx_file)
