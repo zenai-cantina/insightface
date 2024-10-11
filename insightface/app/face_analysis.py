@@ -35,6 +35,8 @@ class FaceAnalysis:
             "det_10g.onnx": "detection",
             "genderage.onnx": "genderage",
             "w600k_r50.onnx": "recognition",
+            "scrfd_10g_bnkps.onnx": "detection",
+            "glintr100.onnx": "recognition",
         }
 
         if allowed_modules is not None:
